@@ -31,13 +31,12 @@ class Environment:
             self._initialized = True
 
     def _load_env_file(self) -> None:
+        """Carrega variáveis do .env se existir (desenvolvimento local)"""
         env_path = Path(__file__).parent.parent.parent / ".env"
 
         if not env_path.exists():
-            raise EnvironmentError(
-                f"Arquivo .env não encontrado em: {env_path}\n"
-                f"Por favor, crie o arquivo .env baseado no .env.example"
-            )
+            print("Arquivo .env não encontrado. Usando variáveis de ambiente do sistema.")
+            return
 
         try:
             with open(env_path, "r", encoding="utf-8") as f:
@@ -50,8 +49,10 @@ class Environment:
                             value = value.strip().strip('"').strip("'")
                             if key and value:
                                 os.environ[key] = value
+            print(f"Variáveis carregadas do arquivo .env")
         except Exception as e:
             raise EnvironmentError(f"Erro ao ler arquivo .env: {str(e)}") from e
+
 
     def _validate_environment(self) -> None:
         missing_vars: List[str] = []
