@@ -31,7 +31,7 @@ def create_modality():
     
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -39,14 +39,14 @@ def create_modality():
 def list_modalities():
     try:
         only_active = request.args.get("only_active", "true").lower() == "true"
-        
+
         repository = get_repository()
         use_case = ListPaymentModalities(repository)
         modalities = use_case.execute(only_active=only_active)
-        
+
         return jsonify([m.to_dict() for m in modalities]), 200
-    
-    except Exception as e:
+
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -64,7 +64,7 @@ def update_modality(modality_id):
     
     except ValueError as e:
         return jsonify({"error": str(e)}), 404 if "não encontrada" in str(e) else 400
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -74,14 +74,14 @@ def delete_modality(modality_id):
         repository = get_repository()
         use_case = DeletePaymentModality(repository)
         success = use_case.execute(modality_id)
-        
+
         if success:
             return jsonify({"message": "Modalidade deletada com sucesso"}), 200
         return jsonify({"error": "Erro ao deletar modalidade"}), 500
-    
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -90,14 +90,14 @@ def toggle_modality(modality_id):
     try:
         data = request.get_json()
         activate = data.get("activate", True)
-        
+
         repository = get_repository()
         use_case = TogglePaymentModality(repository)
         modality = use_case.execute(modality_id, activate)
-        
+
         return jsonify(modality.to_dict()), 200
-    
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500

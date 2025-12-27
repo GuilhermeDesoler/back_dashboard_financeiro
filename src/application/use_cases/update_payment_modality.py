@@ -19,5 +19,9 @@ class UpdatePaymentModality:
             raise ValueError(f"Modalidade '{name}' já existe")
         
         modality.name = name.strip()
-        
-        return self._repository.update(modality)
+
+        updated = self._repository.update(modality_id, modality)
+        if not updated:
+            raise ValueError("Erro ao atualizar modalidade")
+
+        return updated

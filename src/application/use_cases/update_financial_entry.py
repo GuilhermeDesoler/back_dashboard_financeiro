@@ -38,5 +38,9 @@ class UpdateFinancialEntry:
         entry.date = date
         entry.modality_id = modality_id
         entry.modality_name = modality.name
-        
-        return self._entry_repository.update(entry)
+
+        updated = self._entry_repository.update(entry_id, entry)
+        if not updated:
+            raise ValueError("Erro ao atualizar lançamento")
+
+        return updated

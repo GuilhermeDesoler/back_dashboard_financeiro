@@ -34,18 +34,35 @@ class MongoFinancialEntryRepository(FinancialEntryRepository):
         docs = self._collection.find().sort("date", -1)
         return [self._doc_to_entity(doc) for doc in docs]
 
-    def update(self, entry: FinancialEntry) -> FinancialEntry:
+    def find_by_date(self, date: datetime) -> List[FinancialEntry]:
+        """Busca lançamentos de uma data específica"""
+        start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = date.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        docs = self._collection.find({
+            "date": {
+                "$gte": start_of_day.isoformat(),
+                "$lte": end_of_day.isoformat()
+            }
+        }).sort("date", -1)
+        return [self._doc_to_entity(doc) for doc in docs]
+
+    def update(self, entry_id: str, entry: FinancialEntry) -> Optional[FinancialEntry]:
         entry.updated_at = datetime.now()
-        
+
         entry_dict = entry.to_dict()
-        entry_id = entry_dict.pop('id')
-        
-        self._collection.update_one(
+        entry_dict.pop('id', None)
+
+        result = self._collection.update_one(
             {"_id": entry_id},
             {"$set": entry_dict}
         )
-        
-        return entry
+
+        if result.modified_count > 0 or result.matched_count > 0:
+            entry.id = entry_id
+            return entry
+
+        return None
 
     def delete(self, entry_id: str) -> bool:
         result = self._collection.delete_one({"_id": entry_id})
@@ -65,6 +82,53 @@ class MongoFinancialEntryRepository(FinancialEntryRepository):
             }
         }).sort("date", -1)
         return [self._doc_to_entity(doc) for doc in docs]
+
+    def get_total_by_date(self, date: datetime) -> float:
+        """Retorna o total de lançamentos de uma data específica"""
+        start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = date.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        pipeline = [
+            {
+                "$match": {
+                    "date": {
+                        "$gte": start_of_day.isoformat(),
+                        "$lte": end_of_day.isoformat()
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total": {"$sum": "$value"}
+                }
+            }
+        ]
+
+        result = list(self._collection.aggregate(pipeline))
+        return float(result[0]["total"]) if result else 0.0
+
+    def get_total_by_date_range(self, start_date: datetime, end_date: datetime) -> float:
+        """Retorna o total de lançamentos em um intervalo de datas"""
+        pipeline = [
+            {
+                "$match": {
+                    "date": {
+                        "$gte": start_date.isoformat(),
+                        "$lte": end_date.isoformat()
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total": {"$sum": "$value"}
+                }
+            }
+        ]
+
+        result = list(self._collection.aggregate(pipeline))
+        return float(result[0]["total"]) if result else 0.0
 
     def _doc_to_entity(self, doc: dict) -> FinancialEntry:
         return FinancialEntry(

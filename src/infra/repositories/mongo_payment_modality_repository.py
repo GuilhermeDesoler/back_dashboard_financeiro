@@ -33,18 +33,22 @@ class MongoPaymentModalityRepository(PaymentModalityRepository):
         docs = self._collection.find()
         return [self._doc_to_entity(doc) for doc in docs]
 
-    def update(self, modality: PaymentModality) -> PaymentModality:
+    def update(self, modality_id: str, modality: PaymentModality) -> Optional[PaymentModality]:
         modality.updated_at = datetime.now()
-        
+
         modality_dict = modality.to_dict()
-        modality_id = modality_dict.pop('id')
-        
-        self._collection.update_one(
+        modality_dict.pop('id', None)
+
+        result = self._collection.update_one(
             {"_id": modality_id},
             {"$set": modality_dict}
         )
-        
-        return modality
+
+        if result.modified_count > 0 or result.matched_count > 0:
+            modality.id = modality_id
+            return modality
+
+        return None
 
     def delete(self, modality_id: str) -> bool:
         result = self._collection.delete_one({"_id": modality_id})
@@ -55,6 +59,27 @@ class MongoPaymentModalityRepository(PaymentModalityRepository):
         if doc:
             return self._doc_to_entity(doc)
         return None
+
+    def find_active(self) -> List[PaymentModality]:
+        """Retorna apenas modalidades ativas"""
+        docs = self._collection.find({"is_active": True})
+        return [self._doc_to_entity(doc) for doc in docs]
+
+    def activate(self, modality_id: str) -> bool:
+        """Ativa uma modalidade de pagamento"""
+        result = self._collection.update_one(
+            {"_id": modality_id},
+            {"$set": {"is_active": True, "updated_at": datetime.now().isoformat()}}
+        )
+        return result.modified_count > 0
+
+    def deactivate(self, modality_id: str) -> bool:
+        """Desativa uma modalidade de pagamento"""
+        result = self._collection.update_one(
+            {"_id": modality_id},
+            {"$set": {"is_active": False, "updated_at": datetime.now().isoformat()}}
+        )
+        return result.modified_count > 0
 
     def _doc_to_entity(self, doc: dict) -> PaymentModality:
         return PaymentModality(

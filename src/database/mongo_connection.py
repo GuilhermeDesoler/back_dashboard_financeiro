@@ -28,7 +28,7 @@ class MongoConnection:
 
             self._client.admin.command("ping")
 
-            print(f"Conexão estabelecida")
+            print(f"Conexão estabelecida com MongoDB")
 
         except Exception as e:
             error_msg = f"Erro ao conectar ao MongoDB: {str(e)}"

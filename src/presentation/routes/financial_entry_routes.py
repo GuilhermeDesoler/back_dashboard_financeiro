@@ -43,7 +43,7 @@ def create_entry():
     
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -53,17 +53,17 @@ def list_entries():
         modality_id = request.args.get("modality_id")
         start_date_str = request.args.get("start_date")
         end_date_str = request.args.get("end_date")
-        
+
         start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
-        
+
         entry_repo, _ = get_repositories()
         use_case = ListFinancialEntries(entry_repo)
         entries = use_case.execute(modality_id, start_date, end_date)
-        
+
         return jsonify([e.to_dict() for e in entries]), 200
-    
-    except Exception as e:
+
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -85,7 +85,7 @@ def update_entry(entry_id):
     
     except ValueError as e:
         return jsonify({"error": str(e)}), 404 if "não encontrado" in str(e) else 400
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -95,12 +95,12 @@ def delete_entry(entry_id):
         entry_repo, _ = get_repositories()
         use_case = DeleteFinancialEntry(entry_repo)
         success = use_case.execute(entry_id)
-        
+
         if success:
             return jsonify({"message": "Lançamento deletado com sucesso"}), 200
         return jsonify({"error": "Erro ao deletar lançamento"}), 500
-    
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500

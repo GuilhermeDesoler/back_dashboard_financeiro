@@ -15,5 +15,9 @@ class TogglePaymentModality:
             modality.activate()
         else:
             modality.deactive()
-        
-        return self._repository.update(modality)
+
+        updated = self._repository.update(modality_id, modality)
+        if not updated:
+            raise ValueError("Erro ao atualizar modalidade")
+
+        return updated
