@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: dashboard-financeiro-api
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn -w 4 -b 0.0.0.0:$PORT src.app:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DATABASE
+        sync: false
