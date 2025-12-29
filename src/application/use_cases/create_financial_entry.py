@@ -30,7 +30,8 @@ class CreateFinancialEntry:
             value=value,
             date=date,
             modality_id=modality_id,
-            modality_name=modality.name
+            modality_name=modality.name,
+            modality_color=modality.color
         )
         
         return self._entry_repository.create(entry)

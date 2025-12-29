@@ -38,6 +38,7 @@ class UpdateFinancialEntry:
         entry.date = date
         entry.modality_id = modality_id
         entry.modality_name = modality.name
+        entry.modality_color = modality.color
 
         updated = self._entry_repository.update(entry_id, entry)
         if not updated:

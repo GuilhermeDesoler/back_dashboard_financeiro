@@ -22,13 +22,14 @@ def create_modality():
     try:
         data = request.get_json()
         name = data.get("name")
-        
+        color = data.get("color")
+
         repository = get_repository()
         use_case = CreatePaymentModality(repository)
-        modality = use_case.execute(name)
-        
+        modality = use_case.execute(name, color)
+
         return jsonify(modality.to_dict()), 201
-    
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception:
@@ -55,13 +56,14 @@ def update_modality(modality_id):
     try:
         data = request.get_json()
         name = data.get("name")
-        
+        color = data.get("color")
+
         repository = get_repository()
         use_case = UpdatePaymentModality(repository)
-        modality = use_case.execute(modality_id, name)
-        
+        modality = use_case.execute(modality_id, name, color)
+
         return jsonify(modality.to_dict()), 200
-    
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 404 if "não encontrada" in str(e) else 400
     except Exception:

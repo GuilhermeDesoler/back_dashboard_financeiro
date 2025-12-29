@@ -85,6 +85,7 @@ class MongoPaymentModalityRepository(PaymentModalityRepository):
         return PaymentModality(
             id=doc["_id"],
             name=doc["name"],
+            color=doc.get("color", "#000000"),
             is_active=doc.get("is_active", True),
             created_at=PaymentModality._parse_datetime(doc.get("created_at")),
             updated_at=PaymentModality._parse_datetime(doc.get("updated_at"))
