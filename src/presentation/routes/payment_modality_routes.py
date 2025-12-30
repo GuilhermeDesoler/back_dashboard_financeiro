@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify
-from src.database import get_collection
+from flask import Blueprint, request, jsonify, g
+from src.database import get_tenant_db
 from src.infra.repositories import MongoPaymentModalityRepository
 from src.application.use_cases import (
     CreatePaymentModality,
@@ -8,23 +8,29 @@ from src.application.use_cases import (
     DeletePaymentModality,
     TogglePaymentModality,
 )
+from src.application.middleware import require_auth, require_feature
 
 payment_modality_bp = Blueprint("payment_modalities", __name__)
 
 
-def get_repository():
-    collection = get_collection("payment_modalities")
+def get_repository(company_id: str):
+    """Retorna repositório do banco de dados da empresa"""
+    tenant_db = get_tenant_db(company_id)
+    collection = tenant_db["payment_modalities"]
     return MongoPaymentModalityRepository(collection)
 
 
 @payment_modality_bp.route("/payment-modalities", methods=["POST"])
+@require_auth
+@require_feature("payment_modalities.create")
 def create_modality():
     try:
         data = request.get_json()
         name = data.get("name")
         color = data.get("color")
 
-        repository = get_repository()
+        # Usa o DB da empresa do usuário autenticado
+        repository = get_repository(g.company_id)
         use_case = CreatePaymentModality(repository)
         modality = use_case.execute(name, color)
 
@@ -37,11 +43,14 @@ def create_modality():
 
 
 @payment_modality_bp.route("/payment-modalities", methods=["GET"])
+@require_auth
+@require_feature("payment_modalities.read")
 def list_modalities():
     try:
         only_active = request.args.get("only_active", "true").lower() == "true"
 
-        repository = get_repository()
+        # Usa o DB da empresa do usuário autenticado
+        repository = get_repository(g.company_id)
         use_case = ListPaymentModalities(repository)
         modalities = use_case.execute(only_active=only_active)
 
@@ -52,13 +61,16 @@ def list_modalities():
 
 
 @payment_modality_bp.route("/payment-modalities/<modality_id>", methods=["PUT"])
+@require_auth
+@require_feature("payment_modalities.update")
 def update_modality(modality_id):
     try:
         data = request.get_json()
         name = data.get("name")
         color = data.get("color")
 
-        repository = get_repository()
+        # Usa o DB da empresa do usuário autenticado
+        repository = get_repository(g.company_id)
         use_case = UpdatePaymentModality(repository)
         modality = use_case.execute(modality_id, name, color)
 
@@ -71,9 +83,12 @@ def update_modality(modality_id):
 
 
 @payment_modality_bp.route("/payment-modalities/<modality_id>", methods=["DELETE"])
+@require_auth
+@require_feature("payment_modalities.delete")
 def delete_modality(modality_id):
     try:
-        repository = get_repository()
+        # Usa o DB da empresa do usuário autenticado
+        repository = get_repository(g.company_id)
         use_case = DeletePaymentModality(repository)
         success = use_case.execute(modality_id)
 
@@ -88,12 +103,15 @@ def delete_modality(modality_id):
 
 
 @payment_modality_bp.route("/payment-modalities/<modality_id>/toggle", methods=["PATCH"])
+@require_auth
+@require_feature("payment_modalities.toggle")
 def toggle_modality(modality_id):
     try:
         data = request.get_json()
         activate = data.get("activate", True)
 
-        repository = get_repository()
+        # Usa o DB da empresa do usuário autenticado
+        repository = get_repository(g.company_id)
         use_case = TogglePaymentModality(repository)
         modality = use_case.execute(modality_id, activate)
 

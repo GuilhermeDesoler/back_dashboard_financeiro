@@ -1,6 +1,6 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime
-from src.database import get_collection
+from src.database import get_tenant_db
 from src.infra.repositories import (
     MongoFinancialEntryRepository,
     MongoPaymentModalityRepository,
@@ -11,21 +11,27 @@ from src.application.use_cases import (
     UpdateFinancialEntry,
     DeleteFinancialEntry,
 )
+from src.application.middleware import require_auth, require_feature
 
 financial_entry_bp = Blueprint("financial_entries", __name__)
 
 
-def get_repositories():
-    entry_collection = get_collection("financial_entries")
-    modality_collection = get_collection("payment_modalities")
-    
+def get_repositories(company_id: str):
+    """Retorna repositórios do banco de dados da empresa"""
+    tenant_db = get_tenant_db(company_id)
+
+    entry_collection = tenant_db["financial_entries"]
+    modality_collection = tenant_db["payment_modalities"]
+
     entry_repo = MongoFinancialEntryRepository(entry_collection)
     modality_repo = MongoPaymentModalityRepository(modality_collection)
-    
+
     return entry_repo, modality_repo
 
 
 @financial_entry_bp.route("/financial-entries", methods=["POST"])
+@require_auth
+@require_feature("financial_entries.create")
 def create_entry():
     try:
         data = request.get_json()
@@ -34,8 +40,9 @@ def create_entry():
         modality_id = data.get("modality_id")
         
         date = datetime.fromisoformat(date_str)
-        
-        entry_repo, modality_repo = get_repositories()
+
+        # Usa o DB da empresa do usuário autenticado
+        entry_repo, modality_repo = get_repositories(g.company_id)
         use_case = CreateFinancialEntry(entry_repo, modality_repo)
         entry = use_case.execute(value, date, modality_id)
         
@@ -48,6 +55,8 @@ def create_entry():
 
 
 @financial_entry_bp.route("/financial-entries", methods=["GET"])
+@require_auth
+@require_feature("financial_entries.read")
 def list_entries():
     try:
         modality_id = request.args.get("modality_id")
@@ -57,7 +66,8 @@ def list_entries():
         start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
 
-        entry_repo, _ = get_repositories()
+        # Usa o DB da empresa do usuário autenticado
+        entry_repo, _ = get_repositories(g.company_id)
         use_case = ListFinancialEntries(entry_repo)
         entries = use_case.execute(modality_id, start_date, end_date)
 
@@ -68,6 +78,8 @@ def list_entries():
 
 
 @financial_entry_bp.route("/financial-entries/<entry_id>", methods=["PUT"])
+@require_auth
+@require_feature("financial_entries.update")
 def update_entry(entry_id):
     try:
         data = request.get_json()
@@ -76,8 +88,9 @@ def update_entry(entry_id):
         modality_id = data.get("modality_id")
         
         date = datetime.fromisoformat(date_str)
-        
-        entry_repo, modality_repo = get_repositories()
+
+        # Usa o DB da empresa do usuário autenticado
+        entry_repo, modality_repo = get_repositories(g.company_id)
         use_case = UpdateFinancialEntry(entry_repo, modality_repo)
         entry = use_case.execute(entry_id, value, date, modality_id)
         
@@ -90,9 +103,12 @@ def update_entry(entry_id):
 
 
 @financial_entry_bp.route("/financial-entries/<entry_id>", methods=["DELETE"])
+@require_auth
+@require_feature("financial_entries.delete")
 def delete_entry(entry_id):
     try:
-        entry_repo, _ = get_repositories()
+        # Usa o DB da empresa do usuário autenticado
+        entry_repo, _ = get_repositories(g.company_id)
         use_case = DeleteFinancialEntry(entry_repo)
         success = use_case.execute(entry_id)
 

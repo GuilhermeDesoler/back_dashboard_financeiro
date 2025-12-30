@@ -11,3 +11,7 @@ python-dotenv==1.0.1
 werkzeug==3.0.6
 zipp==3.20.2
 gunicorn==21.2.0
+
+# Segurança e Autenticação
+bcrypt==4.1.2
+PyJWT==2.8.0
