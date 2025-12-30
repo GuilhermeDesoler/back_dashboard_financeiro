@@ -94,7 +94,12 @@ class TenantDatabaseManager:
         tenant_db["financial_entries"].create_index([("date", -1)])
 
         # Índices para payment_modalities
-        tenant_db["payment_modalities"].create_index("name", unique=True)
+        # Índice único case-insensitive para evitar duplicatas como "PIX" vs "Pix"
+        tenant_db["payment_modalities"].create_index(
+            "name",
+            unique=True,
+            collation={"locale": "pt", "strength": 2}  # Case-insensitive
+        )
         tenant_db["payment_modalities"].create_index("is_active")
 
         # Índices para roles

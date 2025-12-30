@@ -55,7 +55,8 @@ class MongoPaymentModalityRepository(PaymentModalityRepository):
         return result.deleted_count > 0
 
     def find_by_name(self, name: str) -> Optional[PaymentModality]:
-        doc = self._collection.find_one({"name": name})
+        # Busca case-insensitive para evitar duplicatas como "PIX" vs "Pix"
+        doc = self._collection.find_one({"name": {"$regex": f"^{name.strip()}$", "$options": "i"}})
         if doc:
             return self._doc_to_entity(doc)
         return None
