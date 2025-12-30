@@ -127,10 +127,7 @@ def create_new_company():
             }
         )
 
-        return jsonify({
-            "message": "Empresa criada com sucesso",
-            "company": company.to_dict()
-        }), 201
+        return jsonify(company.to_dict()), 201
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -151,7 +148,7 @@ def get_company_details(company_id):
         403: Sem permissão (apenas super admin)
     """
     try:
-        company_repo, user_repo, _ = get_repositories()
+        company_repo, user_repo, _, _ = get_repositories()
 
         company = company_repo.find_by_id(company_id)
         if not company:
@@ -178,6 +175,135 @@ def get_company_details(company_id):
         ]
 
         return jsonify(result), 200
+
+    except Exception:
+        return jsonify({"error": "Erro interno do servidor"}), 500
+
+
+@admin_bp.route("/admin/companies/<company_id>", methods=["PUT"])
+@require_auth
+@require_super_admin
+def update_company(company_id):
+    """
+    Atualiza dados de uma empresa (Super Admin only)
+
+    Body:
+        {
+            "name": "Nome Atualizado",
+            "cnpj": "12.345.678/0001-90",
+            "phone": "(11) 99999-9999",
+            "plan": "premium"
+        }
+
+    Returns:
+        200: Empresa atualizada
+        404: Empresa não encontrada
+        403: Sem permissão (apenas super admin)
+    """
+    try:
+        data = request.get_json()
+
+        name = data.get("name")
+        cnpj = data.get("cnpj")
+        phone = data.get("phone")
+        plan = data.get("plan")
+
+        company_repo, _, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
+
+        # Busca empresa existente
+        existing_company = company_repo.find_by_id(company_id)
+        if not existing_company:
+            return jsonify({"error": "Empresa não encontrada"}), 404
+
+        # Atualiza campos
+        from src.domain.entities import Company
+        updated_company = Company(
+            id=company_id,
+            name=name or existing_company.name,
+            cnpj=cnpj or existing_company.cnpj,
+            phone=phone or existing_company.phone,
+            plan=plan or existing_company.plan,
+            is_active=existing_company.is_active,
+            is_admin_company=existing_company.is_admin_company,
+            settings=existing_company.settings
+        )
+
+        result = company_repo.update(company_id, updated_company)
+        if not result:
+            return jsonify({"error": "Erro ao atualizar empresa"}), 500
+
+        # Log de auditoria
+        audit_service.log(
+            action="update_company",
+            user_id=g.user_id,
+            user_email=g.email,
+            target_type="company",
+            target_id=company_id,
+            details={
+                "company_name": updated_company.name,
+                "changes": {
+                    "name": name if name != existing_company.name else None,
+                    "plan": plan if plan != existing_company.plan else None,
+                    "phone": phone if phone != existing_company.phone else None
+                }
+            }
+        )
+
+        return jsonify(result.to_dict()), 200
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception:
+        return jsonify({"error": "Erro interno do servidor"}), 500
+
+
+@admin_bp.route("/admin/companies/<company_id>", methods=["DELETE"])
+@require_auth
+@require_super_admin
+def delete_company(company_id):
+    """
+    Deleta uma empresa e seu banco de dados (Super Admin only)
+    **CUIDADO: Esta operação é irreversível!**
+
+    Returns:
+        200: Empresa deletada
+        404: Empresa não encontrada
+        403: Sem permissão (apenas super admin)
+    """
+    try:
+        company_repo, user_repo, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
+
+        company = company_repo.find_by_id(company_id)
+        if not company:
+            return jsonify({"error": "Empresa não encontrada"}), 404
+
+        # Log de auditoria ANTES de deletar
+        audit_service.log(
+            action="delete_company",
+            user_id=g.user_id,
+            user_email=g.email,
+            target_type="company",
+            target_id=company_id,
+            details={
+                "company_name": company.name,
+                "cnpj": company.cnpj,
+                "plan": company.plan
+            }
+        )
+
+        # Deletar database da empresa
+        from src.infra.database.tenant_database_manager import TenantDatabaseManager
+        tenant_manager = TenantDatabaseManager()
+        tenant_manager.delete_tenant_db(company_id)
+
+        # Deletar empresa do shared_db
+        success = company_repo.delete(company_id)
+        if not success:
+            return jsonify({"error": "Erro ao deletar empresa"}), 500
+
+        return jsonify({"message": "Empresa e dados deletados com sucesso"}), 200
 
     except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
@@ -262,7 +388,7 @@ def list_all_users():
         company_id = request.args.get("company_id")
         only_active = request.args.get("only_active", "true").lower() == "true"
 
-        _, user_repo, _ = get_repositories()
+        _, user_repo, _, _ = get_repositories()
 
         if company_id:
             users = user_repo.find_by_company(company_id)
@@ -378,13 +504,183 @@ def create_user():
             }
         )
 
-        return jsonify({
-            "message": "Usuário criado com sucesso",
-            "user": created_user.to_dict()
-        }), 201
+        return jsonify(created_user.to_dict()), 201
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except Exception:
+        return jsonify({"error": "Erro interno do servidor"}), 500
+
+
+@admin_bp.route("/admin/users/company/<company_id>", methods=["GET"])
+@require_auth
+@require_super_admin
+def list_users_by_company(company_id):
+    """
+    Lista usuários de uma empresa específica (Super Admin only)
+
+    Returns:
+        200: Lista de usuários da empresa
+        404: Empresa não encontrada
+        403: Sem permissão (apenas super admin)
+    """
+    try:
+        company_repo, user_repo, _, _ = get_repositories()
+
+        # Verifica se empresa existe
+        company = company_repo.find_by_id(company_id)
+        if not company:
+            return jsonify({"error": "Empresa não encontrada"}), 404
+
+        users = user_repo.find_by_company(company_id)
+
+        result = [
+            {
+                "id": u.id,
+                "name": u.name,
+                "email": u.email,
+                "company_id": u.company_id,
+                "is_active": u.is_active,
+                "is_super_admin": u.is_super_admin,
+                "created_at": u.created_at.isoformat() if u.created_at else None
+            }
+            for u in users
+        ]
+
+        return jsonify(result), 200
+
+    except Exception:
+        return jsonify({"error": "Erro interno do servidor"}), 500
+
+
+@admin_bp.route("/admin/users/<user_id>/activate", methods=["PATCH"])
+@require_auth
+@require_super_admin
+def activate_user(user_id):
+    """
+    Ativa um usuário (Super Admin only)
+
+    Returns:
+        200: Usuário ativado
+        404: Usuário não encontrado
+        403: Sem permissão (apenas super admin)
+    """
+    try:
+        _, user_repo, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
+
+        user = user_repo.find_by_id(user_id)
+        if not user:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+
+        user_repo.activate(user_id)
+
+        # Log de auditoria
+        audit_service.log(
+            action="activate_user",
+            user_id=g.user_id,
+            user_email=g.email,
+            company_id=user.company_id,
+            target_type="user",
+            target_id=user_id,
+            details={
+                "target_user_email": user.email,
+                "target_user_name": user.name
+            }
+        )
+
+        # Busca usuário atualizado
+        updated_user = user_repo.find_by_id(user_id)
+        return jsonify(updated_user.to_dict()), 200
+
+    except Exception:
+        return jsonify({"error": "Erro interno do servidor"}), 500
+
+
+@admin_bp.route("/admin/users/<user_id>/deactivate", methods=["PATCH"])
+@require_auth
+@require_super_admin
+def deactivate_user(user_id):
+    """
+    Desativa um usuário (Super Admin only)
+
+    Returns:
+        200: Usuário desativado
+        404: Usuário não encontrado
+        403: Sem permissão (apenas super admin)
+    """
+    try:
+        _, user_repo, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
+
+        user = user_repo.find_by_id(user_id)
+        if not user:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+
+        user_repo.deactivate(user_id)
+
+        # Log de auditoria
+        audit_service.log(
+            action="deactivate_user",
+            user_id=g.user_id,
+            user_email=g.email,
+            company_id=user.company_id,
+            target_type="user",
+            target_id=user_id,
+            details={
+                "target_user_email": user.email,
+                "target_user_name": user.name
+            }
+        )
+
+        # Busca usuário atualizado
+        updated_user = user_repo.find_by_id(user_id)
+        return jsonify(updated_user.to_dict()), 200
+
+    except Exception:
+        return jsonify({"error": "Erro interno do servidor"}), 500
+
+
+@admin_bp.route("/admin/users/<user_id>", methods=["DELETE"])
+@require_auth
+@require_super_admin
+def delete_user(user_id):
+    """
+    Deleta um usuário (Super Admin only)
+
+    Returns:
+        200: Usuário deletado
+        404: Usuário não encontrado
+        403: Sem permissão (apenas super admin)
+    """
+    try:
+        _, user_repo, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
+
+        user = user_repo.find_by_id(user_id)
+        if not user:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+
+        # Log de auditoria ANTES de deletar
+        audit_service.log(
+            action="delete_user",
+            user_id=g.user_id,
+            user_email=g.email,
+            company_id=user.company_id,
+            target_type="user",
+            target_id=user_id,
+            details={
+                "target_user_email": user.email,
+                "target_user_name": user.name
+            }
+        )
+
+        success = user_repo.delete(user_id)
+        if not success:
+            return jsonify({"error": "Erro ao deletar usuário"}), 500
+
+        return jsonify({"message": "Usuário deletado com sucesso"}), 200
+
     except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
@@ -461,7 +757,7 @@ def admin_dashboard():
         403: Sem permissão (apenas super admin)
     """
     try:
-        company_repo, user_repo, feature_repo = get_repositories()
+        company_repo, user_repo, feature_repo, _ = get_repositories()
 
         # Estatísticas de empresas
         all_companies = company_repo.find_all()

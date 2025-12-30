@@ -77,6 +77,31 @@ def list_entries():
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
+@financial_entry_bp.route("/financial-entries/<entry_id>", methods=["GET"])
+@require_auth
+@require_feature("financial_entries.read")
+def get_entry_by_id(entry_id):
+    """
+    Busca um lançamento financeiro por ID
+
+    Returns:
+        200: Lançamento encontrado
+        404: Lançamento não encontrado
+    """
+    try:
+        # Usa o DB da empresa do usuário autenticado
+        entry_repo, _ = get_repositories(g.company_id)
+
+        entry = entry_repo.find_by_id(entry_id)
+        if not entry:
+            return jsonify({"error": "Lançamento não encontrado"}), 404
+
+        return jsonify(entry.to_dict()), 200
+
+    except Exception:
+        return jsonify({"error": "Erro interno do servidor"}), 500
+
+
 @financial_entry_bp.route("/financial-entries/<entry_id>", methods=["PUT"])
 @require_auth
 @require_feature("financial_entries.update")

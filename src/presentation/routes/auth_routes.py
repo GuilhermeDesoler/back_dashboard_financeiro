@@ -37,7 +37,7 @@ def login():
 
     Returns:
         200: Login bem-sucedido com token
-        400: Credenciais inválidas
+        401: Credenciais inválidas
     """
     try:
         data = request.get_json()
@@ -54,7 +54,7 @@ def login():
         return jsonify(result), 200
 
     except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 401
     except Exception as e:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
@@ -117,7 +117,8 @@ def me():
             "name": g.name,
             "company_id": g.company_id,
             "roles": g.roles,
-            "features": g.features
+            "features": g.features,
+            "is_super_admin": g.is_super_admin
         }), 200
 
     return get_user_info()
