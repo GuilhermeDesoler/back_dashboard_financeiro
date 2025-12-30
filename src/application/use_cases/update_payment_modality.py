@@ -6,7 +6,7 @@ class UpdatePaymentModality:
     def __init__(self, repository: PaymentModalityRepository):
         self._repository = repository
 
-    def execute(self, modality_id: str, name: str = None, color: str = None) -> PaymentModality:
+    def execute(self, modality_id: str, name: str = None, color: str = None, is_active: bool = None) -> PaymentModality:
         modality = self._repository.find_by_id(modality_id)
         if not modality:
             raise ValueError("Modalidade não encontrada")
@@ -26,6 +26,9 @@ class UpdatePaymentModality:
                 raise ValueError("Cor da modalidade não pode ser vazia")
 
             modality.color = color.strip()
+
+        if is_active is not None:
+            modality.is_active = is_active
 
         updated = self._repository.update(modality_id, modality)
         if not updated:

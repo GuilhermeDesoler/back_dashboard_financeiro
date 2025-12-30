@@ -289,7 +289,42 @@ class TestAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == payload["name"]
-        print("✅ Atualização de modalidade passou")
+        assert data["color"] == payload["color"]  # Verifica se cor mudou
+        print("✅ Atualização de modalidade passou - Nome e cor atualizados")
+
+    def test_16a_toggle_modality_inactive(self):
+        """Teste: Desativar modalidade de pagamento"""
+        if not TestAPI.company_token or not TestAPI.created_modality_id:
+            pytest.skip("Token de empresa ou modalidade não disponível")
+
+        headers = {**HEADERS, "Authorization": f"Bearer {TestAPI.company_token}"}
+        payload = {"activate": False}
+        response = requests.patch(
+            f"{BASE_URL}/payment-modalities/{TestAPI.created_modality_id}/toggle",
+            json=payload,
+            headers=headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_active"] is False
+        print("✅ Desativação de modalidade passou")
+
+    def test_16b_toggle_modality_active(self):
+        """Teste: Ativar modalidade de pagamento novamente"""
+        if not TestAPI.company_token or not TestAPI.created_modality_id:
+            pytest.skip("Token de empresa ou modalidade não disponível")
+
+        headers = {**HEADERS, "Authorization": f"Bearer {TestAPI.company_token}"}
+        payload = {"activate": True}
+        response = requests.patch(
+            f"{BASE_URL}/payment-modalities/{TestAPI.created_modality_id}/toggle",
+            json=payload,
+            headers=headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_active"] is True
+        print("✅ Ativação de modalidade passou")
 
     # ========== TESTES DE LANÇAMENTOS FINANCEIROS ==========
 

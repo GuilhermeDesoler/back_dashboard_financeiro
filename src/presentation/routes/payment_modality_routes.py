@@ -28,11 +28,12 @@ def create_modality():
         data = request.get_json()
         name = data.get("name")
         color = data.get("color")
+        is_active = data.get("is_active", True)
 
         # Usa o DB da empresa do usuário autenticado
         repository = get_repository(g.company_id)
         use_case = CreatePaymentModality(repository)
-        modality = use_case.execute(name, color)
+        modality = use_case.execute(name, color, is_active)
 
         return jsonify(modality.to_dict()), 201
 
@@ -68,11 +69,12 @@ def update_modality(modality_id):
         data = request.get_json()
         name = data.get("name")
         color = data.get("color")
+        is_active = data.get("is_active")
 
         # Usa o DB da empresa do usuário autenticado
         repository = get_repository(g.company_id)
         use_case = UpdatePaymentModality(repository)
-        modality = use_case.execute(modality_id, name, color)
+        modality = use_case.execute(modality_id, name, color, is_active)
 
         return jsonify(modality.to_dict()), 200
 
