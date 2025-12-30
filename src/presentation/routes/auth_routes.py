@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from src.database import get_shared_db, create_tenant_db
+from src.database import get_shared_db
 from src.infra.repositories import (
     MongoUserRepository,
     MongoCompanyRepository,
@@ -7,7 +7,7 @@ from src.infra.repositories import (
     MongoFeatureRepository
 )
 from src.infra.security import JWTHandler
-from src.application.use_cases.auth import Login, Register, RefreshToken
+from src.application.use_cases.auth import Login, RefreshToken
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -22,49 +22,6 @@ def get_auth_repositories():
     feature_repo = MongoFeatureRepository(shared_db["features"])
 
     return user_repo, company_repo, role_repo, feature_repo
-
-
-@auth_bp.route("/auth/register", methods=["POST"])
-def register():
-    """
-    Registra um novo usuário e empresa
-
-    Body:
-        {
-            "email": "user@example.com",
-            "password": "senha123",
-            "name": "Nome do Usuário",
-            "company_name": "Nome da Empresa",
-            "cnpj": "12.345.678/0001-90"
-        }
-
-    Returns:
-        201: Usuário criado com sucesso
-        400: Erro de validação
-    """
-    try:
-        data = request.get_json()
-
-        email = data.get("email")
-        password = data.get("password")
-        name = data.get("name")
-        company_name = data.get("company_name")
-        cnpj = data.get("cnpj")
-
-        user_repo, company_repo, _, feature_repo = get_auth_repositories()
-
-        use_case = Register(user_repo, company_repo, feature_repo)
-        user = use_case.execute(email, password, name, company_name, cnpj)
-
-        return jsonify({
-            "message": "Usuário registrado com sucesso",
-            "user": user.to_dict()
-        }), 201
-
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({"error": "Erro interno do servidor"}), 500
 
 
 @auth_bp.route("/auth/login", methods=["POST"])

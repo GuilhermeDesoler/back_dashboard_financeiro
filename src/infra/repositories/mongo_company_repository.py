@@ -36,8 +36,21 @@ class MongoCompanyRepository(CompanyRepository):
             return self._doc_to_entity(doc)
         return None
 
-    def find_all(self) -> List[Company]:
-        docs = self._collection.find()
+    def find_all(self, only_active: bool = True) -> List[Company]:
+        """
+        Lista todas as empresas (exceto empresas administrativas)
+
+        Args:
+            only_active: Se True, retorna apenas empresas ativas
+
+        Returns:
+            Lista de empresas (sem empresas administrativas)
+        """
+        query = {"is_admin_company": {"$ne": True}}  # Exclui empresas administrativas
+        if only_active:
+            query["is_active"] = True
+
+        docs = self._collection.find(query)
         return [self._doc_to_entity(doc) for doc in docs]
 
     def update(self, company_id: str, company: Company) -> Optional[Company]:
@@ -69,6 +82,7 @@ class MongoCompanyRepository(CompanyRepository):
             phone=doc.get("phone", ""),
             plan=doc.get("plan", "basic"),
             is_active=doc.get("is_active", True),
+            is_admin_company=doc.get("is_admin_company", False),
             settings=doc.get("settings", {"timezone": "America/Sao_Paulo", "currency": "BRL"}),
             created_at=Company._parse_datetime(doc.get("created_at")),
             updated_at=Company._parse_datetime(doc.get("updated_at"))

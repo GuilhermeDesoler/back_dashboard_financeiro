@@ -4,6 +4,7 @@ from .mongo_user_repository import MongoUserRepository
 from .mongo_company_repository import MongoCompanyRepository
 from .mongo_role_repository import MongoRoleRepository
 from .mongo_feature_repository import MongoFeatureRepository
+from .mongo_audit_log_repository import MongoAuditLogRepository
 
 __all__ = [
     "MongoFinancialEntryRepository",
@@ -12,4 +13,5 @@ __all__ = [
     "MongoCompanyRepository",
     "MongoRoleRepository",
     "MongoFeatureRepository",
+    "MongoAuditLogRepository",
 ]

@@ -10,6 +10,7 @@ class Company:
     phone: str
     plan: str = "basic"
     is_active: bool = True
+    is_admin_company: bool = False  # True para empresa administrativa (super admins)
     settings: Optional[Dict[str, Any]] = None
     id: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -30,6 +31,7 @@ class Company:
             "phone": self.phone,
             "plan": self.plan,
             "is_active": self.is_active,
+            "is_admin_company": self.is_admin_company,
             "settings": self.settings,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,

@@ -63,7 +63,11 @@ class TenantDatabaseManager:
             raise ValueError("company_id é obrigatório")
 
         if company_id not in self._tenant_dbs:
-            db_name = f"company_{company_id}_db"
+            # MongoDB tem limite de 38 bytes para nome de database
+            # Usamos hash curto do company_id para garantir unicidade
+            import hashlib
+            short_hash = hashlib.md5(company_id.encode()).hexdigest()[:8]
+            db_name = f"cmp_{short_hash}_db"
             self._tenant_dbs[company_id] = self._client[db_name]
 
         return self._tenant_dbs[company_id]
@@ -109,7 +113,9 @@ class TenantDatabaseManager:
         Returns:
             True se deletado com sucesso
         """
-        db_name = f"company_{company_id}_db"
+        import hashlib
+        short_hash = hashlib.md5(company_id.encode()).hexdigest()[:8]
+        db_name = f"cmp_{short_hash}_db"
 
         # Remove do cache
         if company_id in self._tenant_dbs:

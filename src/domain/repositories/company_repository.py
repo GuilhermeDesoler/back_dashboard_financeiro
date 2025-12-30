@@ -17,7 +17,7 @@ class CompanyRepository(ABC):
         pass
 
     @abstractmethod
-    def find_all(self) -> List[Company]:
+    def find_all(self, only_active: bool = True) -> List[Company]:
         pass
 
     @abstractmethod

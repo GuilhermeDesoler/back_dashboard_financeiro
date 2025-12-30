@@ -4,11 +4,13 @@ from src.infra.repositories import (
     MongoCompanyRepository,
     MongoUserRepository,
     MongoRoleRepository,
-    MongoFeatureRepository
+    MongoFeatureRepository,
+    MongoAuditLogRepository
 )
 from src.application.use_cases import CreateCompany, ListCompanies
 from src.application.use_cases.admin import ImpersonateCompany
 from src.application.middleware import require_auth, require_super_admin
+from src.application.services.audit_service import AuditService
 from src.infra.security import JWTHandler, PasswordHash
 from src.domain.entities import User
 
@@ -22,8 +24,9 @@ def get_repositories():
     company_repo = MongoCompanyRepository(shared_db["companies"])
     user_repo = MongoUserRepository(shared_db["users"])
     feature_repo = MongoFeatureRepository(shared_db["features"])
+    audit_repo = MongoAuditLogRepository(shared_db["audit_logs"])
 
-    return company_repo, user_repo, feature_repo
+    return company_repo, user_repo, feature_repo, audit_repo
 
 
 # ========== EMPRESAS ==========
@@ -46,9 +49,19 @@ def list_all_companies():
     try:
         only_active = request.args.get("only_active", "true").lower() == "true"
 
-        company_repo, user_repo, _ = get_repositories()
+        company_repo, user_repo, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
+
         use_case = ListCompanies(company_repo)
         companies = use_case.execute(only_active=only_active)
+
+        # Log de auditoria
+        audit_service.log(
+            action="list_companies",
+            user_id=g.user_id,
+            user_email=g.email,
+            details={"only_active": only_active, "total_found": len(companies)}
+        )
 
         # Adiciona contagem de usuários por empresa
         result = []
@@ -61,7 +74,9 @@ def list_all_companies():
         return jsonify(result), 200
 
     except Exception as e:
-        return jsonify({"error": "Erro interno do servidor"}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Erro interno do servidor", "details": str(e)}), 500
 
 
 @admin_bp.route("/admin/companies", methods=["POST"])
@@ -92,9 +107,25 @@ def create_new_company():
         phone = data.get("phone")
         plan = data.get("plan", "basic")
 
-        company_repo, _, _ = get_repositories()
+        company_repo, _, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
+
         use_case = CreateCompany(company_repo)
         company = use_case.execute(name, cnpj, phone, plan)
+
+        # Log de auditoria
+        audit_service.log(
+            action="create_company",
+            user_id=g.user_id,
+            user_email=g.email,
+            target_type="company",
+            target_id=company.id,
+            details={
+                "company_name": name,
+                "cnpj": cnpj,
+                "plan": plan
+            }
+        )
 
         return jsonify({
             "message": "Empresa criada com sucesso",
@@ -168,7 +199,8 @@ def impersonate_company(company_id):
         403: Sem permissão (apenas super admin)
     """
     try:
-        company_repo, user_repo, feature_repo = get_repositories()
+        company_repo, user_repo, feature_repo, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
 
         # Busca role repository da empresa alvo (para futuro uso)
         tenant_db = get_tenant_db(company_id)
@@ -186,11 +218,26 @@ def impersonate_company(company_id):
 
         result = use_case.execute(g.user_id, company_id)
 
+        # Log de auditoria - CRÍTICO
+        company = company_repo.find_by_id(company_id)
+        audit_service.log(
+            action="impersonate_company",
+            user_id=g.user_id,
+            user_email=g.email,
+            company_id=company_id,
+            target_type="company",
+            target_id=company_id,
+            details={
+                "company_name": company.name if company else "Unknown",
+                "token_expires_in_hours": 1
+            }
+        )
+
         return jsonify(result), 200
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -287,7 +334,8 @@ def create_user():
         if not company_id or not company_id.strip():
             raise ValueError("company_id é obrigatório")
 
-        company_repo, user_repo, _ = get_repositories()
+        company_repo, user_repo, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
 
         # Verifica se email já existe
         existing_user = user_repo.find_by_email(email)
@@ -313,6 +361,22 @@ def create_user():
         )
 
         created_user = user_repo.create(user)
+
+        # Log de auditoria
+        audit_service.log(
+            action="create_user",
+            user_id=g.user_id,
+            user_email=g.email,
+            company_id=company_id,
+            target_type="user",
+            target_id=created_user.id,
+            details={
+                "user_email": email,
+                "user_name": name,
+                "company_name": company.name,
+                "is_super_admin": is_super_admin
+            }
+        )
 
         return jsonify({
             "message": "Usuário criado com sucesso",
@@ -346,7 +410,8 @@ def toggle_user_active(user_id):
         data = request.get_json()
         activate = data.get("activate", True)
 
-        _, user_repo, _ = get_repositories()
+        _, user_repo, _, audit_repo = get_repositories()
+        audit_service = AuditService(audit_repo)
 
         user = user_repo.find_by_id(user_id)
         if not user:
@@ -355,9 +420,26 @@ def toggle_user_active(user_id):
         if activate:
             user_repo.activate(user_id)
             message = "Usuário ativado com sucesso"
+            action = "activate_user"
         else:
             user_repo.deactivate(user_id)
             message = "Usuário desativado com sucesso"
+            action = "deactivate_user"
+
+        # Log de auditoria - CRÍTICO
+        audit_service.log(
+            action=action,
+            user_id=g.user_id,
+            user_email=g.email,
+            company_id=user.company_id,
+            target_type="user",
+            target_id=user_id,
+            details={
+                "target_user_email": user.email,
+                "target_user_name": user.name,
+                "activate": activate
+            }
+        )
 
         return jsonify({"message": message}), 200
 
