@@ -1,6 +1,11 @@
 from flask import Flask, jsonify
 from src.config import Environment
-from src.presentation.routes import payment_modality_bp, financial_entry_bp, company_bp
+from src.presentation.routes import (
+    payment_modality_bp,
+    financial_entry_bp,
+    company_bp,
+    credit_purchase_bp
+)
 from src.presentation.routes.auth_routes import auth_bp
 from src.presentation.routes.admin_routes import admin_bp
 from src.presentation.routes.audit_routes import audit_bp
@@ -25,6 +30,7 @@ def create_app():
     app.register_blueprint(payment_modality_bp, url_prefix="/api")
     app.register_blueprint(financial_entry_bp, url_prefix="/api")
     app.register_blueprint(company_bp, url_prefix="/api")
+    app.register_blueprint(credit_purchase_bp, url_prefix="/api")
 
     @app.route("/", methods=["GET"])
     def home():

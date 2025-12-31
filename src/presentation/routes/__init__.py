@@ -1,5 +1,11 @@
 from .payment_modality_routes import payment_modality_bp
 from .financial_entry_routes import financial_entry_bp
 from .company_routes import company_bp
+from .credit_purchase_routes import credit_purchase_bp
 
-__all__ = ["payment_modality_bp", "financial_entry_bp", "company_bp"]
+__all__ = [
+    "payment_modality_bp",
+    "financial_entry_bp",
+    "company_bp",
+    "credit_purchase_bp"
+]
