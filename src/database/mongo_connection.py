@@ -67,12 +67,13 @@ class MongoConnection:
         assert self._shared_db is not None
         return self._shared_db
 
-    def get_tenant_db(self, company_id: str) -> Database:
+    def get_tenant_db(self, company_id: str, company_name: str = None) -> Database:
         """
         Retorna o banco de dados específico de uma empresa
 
         Args:
             company_id: ID da empresa
+            company_name: Nome da empresa (opcional, usado para criar db_name mais legível)
 
         Returns:
             Database específico da empresa
@@ -81,25 +82,36 @@ class MongoConnection:
             raise ValueError("company_id é obrigatório")
 
         if company_id not in self._tenant_dbs:
-            # Usa hash curto do company_id para evitar limite de 38 bytes do MongoDB
-            import hashlib
-            short_id = hashlib.md5(company_id.encode()).hexdigest()[:8]
-            db_name = f"cmp_{short_id}_db"
+            if company_name:
+                # Sanitiza o nome da empresa para usar como nome do database
+                # Remove caracteres especiais e espaços, converte para minúsculas
+                import re
+                safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', company_name.lower())
+                safe_name = re.sub(r'_+', '_', safe_name)  # Remove underscores duplicados
+                safe_name = safe_name.strip('_')  # Remove underscores das pontas
+                db_name = f"company_{safe_name}"
+            else:
+                # Fallback: usa hash curto do company_id
+                import hashlib
+                short_id = hashlib.md5(company_id.encode()).hexdigest()[:8]
+                db_name = f"cmp_{short_id}_db"
+
             self._tenant_dbs[company_id] = self._client[db_name]
 
         return self._tenant_dbs[company_id]
 
-    def create_tenant_db(self, company_id: str) -> Database:
+    def create_tenant_db(self, company_id: str, company_name: str = None) -> Database:
         """
         Cria e inicializa banco de dados para uma empresa
 
         Args:
             company_id: ID da empresa
+            company_name: Nome da empresa (opcional)
 
         Returns:
             Database criado
         """
-        tenant_db = self.get_tenant_db(company_id)
+        tenant_db = self.get_tenant_db(company_id, company_name)
 
         # Cria índices para financial_entries
         tenant_db["financial_entries"].create_index("date")
@@ -161,9 +173,9 @@ def get_collection(collection_name: str, company_id: Optional[str] = None) -> Co
     return MongoConnection().get_collection(collection_name, company_id)
 
 
-def create_tenant_db(company_id: str) -> Database:
+def create_tenant_db(company_id: str, company_name: str = None) -> Database:
     """Cria banco de dados para empresa"""
-    return MongoConnection().create_tenant_db(company_id)
+    return MongoConnection().create_tenant_db(company_id, company_name)
 
 
 def close_connection() -> None:

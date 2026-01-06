@@ -4,7 +4,10 @@ from src.presentation.routes import (
     payment_modality_bp,
     financial_entry_bp,
     company_bp,
-    credit_purchase_bp
+    platform_settings_bp,
+    installment_bp,
+    account_bp,
+    bank_limit_bp
 )
 from src.presentation.routes.auth_routes import auth_bp
 from src.presentation.routes.admin_routes import admin_bp
@@ -30,7 +33,10 @@ def create_app():
     app.register_blueprint(payment_modality_bp, url_prefix="/api")
     app.register_blueprint(financial_entry_bp, url_prefix="/api")
     app.register_blueprint(company_bp, url_prefix="/api")
-    app.register_blueprint(credit_purchase_bp, url_prefix="/api")
+    app.register_blueprint(platform_settings_bp, url_prefix="/api")
+    app.register_blueprint(installment_bp, url_prefix="/api")
+    app.register_blueprint(account_bp, url_prefix="/api")
+    app.register_blueprint(bank_limit_bp, url_prefix="/api")
 
     @app.route("/", methods=["GET"])
     def home():

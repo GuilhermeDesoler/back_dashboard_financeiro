@@ -54,9 +54,15 @@ class MongoPaymentModalityRepository(PaymentModalityRepository):
         result = self._collection.delete_one({"_id": modality_id})
         return result.deleted_count > 0
 
-    def find_by_name(self, name: str) -> Optional[PaymentModality]:
+    def find_by_name(self, name: str, bank_name: str = None) -> Optional[PaymentModality]:
         # Busca case-insensitive para evitar duplicatas como "PIX" vs "Pix"
-        doc = self._collection.find_one({"name": {"$regex": f"^{name.strip()}$", "$options": "i"}})
+        query = {"name": {"$regex": f"^{name.strip()}$", "$options": "i"}}
+
+        # Se bank_name for fornecido, inclui na busca para considerar name+bank como único
+        if bank_name is not None:
+            query["bank_name"] = {"$regex": f"^{bank_name.strip()}$", "$options": "i"}
+
+        doc = self._collection.find_one(query)
         if doc:
             return self._doc_to_entity(doc)
         return None
@@ -87,7 +93,13 @@ class MongoPaymentModalityRepository(PaymentModalityRepository):
             id=doc["_id"],
             name=doc["name"],
             color=doc.get("color", "#000000"),
+            bank_name=doc.get("bank_name", ""),
+            fee_percentage=float(doc.get("fee_percentage", 0.0)),
+            rental_fee=float(doc.get("rental_fee", 0.0)),
             is_active=doc.get("is_active", True),
+            is_credit_plan=doc.get("is_credit_plan", False),
+            allows_anticipation=doc.get("allows_anticipation", False),
+            allows_credit_payment=doc.get("allows_credit_payment", False),
             created_at=PaymentModality._parse_datetime(doc.get("created_at")),
             updated_at=PaymentModality._parse_datetime(doc.get("updated_at"))
         )

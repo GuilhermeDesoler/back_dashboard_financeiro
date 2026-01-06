@@ -4,6 +4,7 @@ from src.database import get_tenant_db
 from src.infra.repositories import (
     MongoFinancialEntryRepository,
     MongoPaymentModalityRepository,
+    MongoInstallmentRepository,
 )
 from src.application.use_cases import (
     CreateFinancialEntry,
@@ -11,7 +12,7 @@ from src.application.use_cases import (
     UpdateFinancialEntry,
     DeleteFinancialEntry,
 )
-from src.application.middleware import require_auth, require_feature
+from src.application.middleware.auth_bypass import require_auth, require_feature, require_role, require_super_admin
 
 financial_entry_bp = Blueprint("financial_entries", __name__)
 
@@ -22,11 +23,13 @@ def get_repositories(company_id: str):
 
     entry_collection = tenant_db["financial_entries"]
     modality_collection = tenant_db["payment_modalities"]
+    installment_collection = tenant_db["installments"]
 
     entry_repo = MongoFinancialEntryRepository(entry_collection)
     modality_repo = MongoPaymentModalityRepository(modality_collection)
+    installment_repo = MongoInstallmentRepository(installment_collection)
 
-    return entry_repo, modality_repo
+    return entry_repo, modality_repo, installment_repo
 
 
 @financial_entry_bp.route("/financial-entries", methods=["POST"])
@@ -38,19 +41,36 @@ def create_entry():
         value = float(data.get("value"))
         date_str = data.get("date")
         modality_id = data.get("modality_id")
-        
+
+        # Optional installment parameters
+        installments_count = data.get("installments_count")
+        start_date_str = data.get("start_date")
+        is_credit_payment = data.get("is_credit_payment", False)
+
         date = datetime.fromisoformat(date_str)
+        start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
 
         # Usa o DB da empresa do usuário autenticado
-        entry_repo, modality_repo = get_repositories(g.company_id)
-        use_case = CreateFinancialEntry(entry_repo, modality_repo)
-        entry = use_case.execute(value, date, modality_id)
-        
-        return jsonify(entry.to_dict()), 201
-    
+        entry_repo, modality_repo, installment_repo = get_repositories(g.company_id)
+        use_case = CreateFinancialEntry(entry_repo, modality_repo, installment_repo)
+        result = use_case.execute(
+            value,
+            date,
+            modality_id,
+            installments_count=installments_count,
+            start_date=start_date,
+            is_credit_payment=is_credit_payment
+        )
+
+        # Return structure: { "entry": {...}, "installments": [...] }
+        return jsonify({
+            "entry": result["entry"].to_dict(),
+            "installments": [inst.to_dict() for inst in result["installments"]]
+        }), 201
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    except Exception:
+    except Exception as e:
         return jsonify({"error": "Erro interno do servidor"}), 500
 
 
@@ -67,7 +87,7 @@ def list_entries():
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
 
         # Usa o DB da empresa do usuário autenticado
-        entry_repo, _ = get_repositories(g.company_id)
+        entry_repo, _, _ = get_repositories(g.company_id)
         use_case = ListFinancialEntries(entry_repo)
         entries = use_case.execute(modality_id, start_date, end_date)
 
@@ -90,7 +110,7 @@ def get_entry_by_id(entry_id):
     """
     try:
         # Usa o DB da empresa do usuário autenticado
-        entry_repo, _ = get_repositories(g.company_id)
+        entry_repo, _, _ = get_repositories(g.company_id)
 
         entry = entry_repo.find_by_id(entry_id)
         if not entry:
@@ -111,16 +131,16 @@ def update_entry(entry_id):
         value = float(data.get("value"))
         date_str = data.get("date")
         modality_id = data.get("modality_id")
-        
+
         date = datetime.fromisoformat(date_str)
 
         # Usa o DB da empresa do usuário autenticado
-        entry_repo, modality_repo = get_repositories(g.company_id)
+        entry_repo, modality_repo, _ = get_repositories(g.company_id)
         use_case = UpdateFinancialEntry(entry_repo, modality_repo)
         entry = use_case.execute(entry_id, value, date, modality_id)
-        
+
         return jsonify(entry.to_dict()), 200
-    
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 404 if "não encontrado" in str(e) else 400
     except Exception:
@@ -133,7 +153,7 @@ def update_entry(entry_id):
 def delete_entry(entry_id):
     try:
         # Usa o DB da empresa do usuário autenticado
-        entry_repo, _ = get_repositories(g.company_id)
+        entry_repo, _, _ = get_repositories(g.company_id)
         use_case = DeleteFinancialEntry(entry_repo)
         success = use_case.execute(entry_id)
 

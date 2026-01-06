@@ -8,7 +8,7 @@ from src.application.use_cases import (
     DeletePaymentModality,
     TogglePaymentModality,
 )
-from src.application.middleware import require_auth, require_feature
+from src.application.middleware.auth_bypass import require_auth, require_feature, require_role, require_super_admin
 
 payment_modality_bp = Blueprint("payment_modalities", __name__)
 
@@ -28,12 +28,28 @@ def create_modality():
         data = request.get_json()
         name = data.get("name")
         color = data.get("color")
+        bank_name = data.get("bank_name", "")
+        fee_percentage = float(data.get("fee_percentage", 0.0))
+        rental_fee = float(data.get("rental_fee", 0.0))
         is_active = data.get("is_active", True)
+        is_credit_plan = data.get("is_credit_plan", False)
+        allows_anticipation = data.get("allows_anticipation", False)
+        allows_credit_payment = data.get("allows_credit_payment", False)
 
         # Usa o DB da empresa do usuário autenticado
         repository = get_repository(g.company_id)
         use_case = CreatePaymentModality(repository)
-        modality = use_case.execute(name, color, is_active)
+        modality = use_case.execute(
+            name,
+            color,
+            bank_name,
+            fee_percentage,
+            rental_fee,
+            is_active,
+            is_credit_plan,
+            allows_anticipation,
+            allows_credit_payment
+        )
 
         return jsonify(modality.to_dict()), 201
 
@@ -69,12 +85,29 @@ def update_modality(modality_id):
         data = request.get_json()
         name = data.get("name")
         color = data.get("color")
+        bank_name = data.get("bank_name")
+        fee_percentage = data.get("fee_percentage")
+        rental_fee = data.get("rental_fee")
         is_active = data.get("is_active")
+        is_credit_plan = data.get("is_credit_plan")
+        allows_anticipation = data.get("allows_anticipation")
+        allows_credit_payment = data.get("allows_credit_payment")
 
         # Usa o DB da empresa do usuário autenticado
         repository = get_repository(g.company_id)
         use_case = UpdatePaymentModality(repository)
-        modality = use_case.execute(modality_id, name, color, is_active)
+        modality = use_case.execute(
+            modality_id,
+            name,
+            color,
+            bank_name,
+            fee_percentage,
+            rental_fee,
+            is_active,
+            is_credit_plan,
+            allows_anticipation,
+            allows_credit_payment
+        )
 
         return jsonify(modality.to_dict()), 200
 
@@ -109,7 +142,7 @@ def delete_modality(modality_id):
 @require_feature("payment_modalities.toggle")
 def toggle_modality(modality_id):
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         activate = data.get("activate", True)
 
         # Usa o DB da empresa do usuário autenticado
@@ -121,5 +154,8 @@ def toggle_modality(modality_id):
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
-    except Exception:
+    except Exception as e:
+        import traceback
+        print(f"Erro no toggle: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({"error": "Erro interno do servidor"}), 500

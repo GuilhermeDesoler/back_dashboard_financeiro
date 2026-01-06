@@ -57,8 +57,7 @@ class TenantDatabaseManager:
         Collections da empresa:
         - financial_entries: Lançamentos financeiros
         - payment_modalities: Modalidades de pagamento
-        - credit_purchases: Compras no crediário (dados brutos)
-        - credit_installments: Parcelas do crediário
+        - platform_settings: Configurações da plataforma
         - roles: Roles específicas da empresa
         """
         if not company_id:
@@ -106,25 +105,6 @@ class TenantDatabaseManager:
 
         # Índices para roles
         tenant_db["roles"].create_index("name", unique=True)
-
-        # Índices para credit_purchases (Compras no Crediário)
-        tenant_db["credit_purchases"].create_index("id", unique=True)
-        tenant_db["credit_purchases"].create_index("status")
-        tenant_db["credit_purchases"].create_index("pagante_nome")
-        tenant_db["credit_purchases"].create_index([("created_at", -1)])
-
-        # Índices para credit_installments (Parcelas do Crediário)
-        tenant_db["credit_installments"].create_index("id", unique=True)
-        tenant_db["credit_installments"].create_index("credit_purchase_id")
-        tenant_db["credit_installments"].create_index("status")
-        tenant_db["credit_installments"].create_index("data_vencimento")
-        tenant_db["credit_installments"].create_index([("data_vencimento", 1)])
-        tenant_db["credit_installments"].create_index("financial_entry_id")
-        # Índice composto para queries do dashboard
-        tenant_db["credit_installments"].create_index([
-            ("data_vencimento", 1),
-            ("status", 1)
-        ])
 
         return tenant_db
 
