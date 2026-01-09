@@ -39,6 +39,7 @@ class UpdateFinancialEntry:
         entry.modality_id = modality_id
         entry.modality_name = modality.name
         entry.modality_color = modality.color
+        entry.is_credit_plan = modality.is_credit_plan  # Atualiza is_credit_plan
 
         updated = self._entry_repository.update(entry_id, entry)
         if not updated:

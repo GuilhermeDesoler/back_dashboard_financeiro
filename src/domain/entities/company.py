@@ -12,6 +12,7 @@ class Company:
     is_active: bool = True
     is_admin_company: bool = False  # True para empresa administrativa (super admins)
     settings: Optional[Dict[str, Any]] = None
+    db_name: Optional[str] = None  # Nome do database MongoDB da empresa
     id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -33,6 +34,7 @@ class Company:
             "is_active": self.is_active,
             "is_admin_company": self.is_admin_company,
             "settings": self.settings,
+            "db_name": self.db_name,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

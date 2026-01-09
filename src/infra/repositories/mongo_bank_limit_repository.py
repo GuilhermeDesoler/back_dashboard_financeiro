@@ -19,6 +19,9 @@ class MongoBankLimitRepository(BankLimitRepository):
         rotativo_used: float = 0.0,
         cheque_available: float = 0.0,
         cheque_used: float = 0.0,
+        rotativo_rate: float = 0.0,
+        cheque_rate: float = 0.0,
+        interest_rate: float = 0.0,
     ) -> BankLimit:
         limit_id = str(uuid.uuid4())
         now = datetime.utcnow()
@@ -30,6 +33,9 @@ class MongoBankLimitRepository(BankLimitRepository):
             "rotativo_used": rotativo_used,
             "cheque_available": cheque_available,
             "cheque_used": cheque_used,
+            "rotativo_rate": rotativo_rate,
+            "cheque_rate": cheque_rate,
+            "interest_rate": interest_rate,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat(),
         }
@@ -55,6 +61,9 @@ class MongoBankLimitRepository(BankLimitRepository):
         rotativo_used: float = 0.0,
         cheque_available: float = 0.0,
         cheque_used: float = 0.0,
+        rotativo_rate: float = 0.0,
+        cheque_rate: float = 0.0,
+        interest_rate: float = 0.0,
     ) -> BankLimit:
         now = datetime.utcnow()
 
@@ -64,6 +73,9 @@ class MongoBankLimitRepository(BankLimitRepository):
             "rotativo_used": rotativo_used,
             "cheque_available": cheque_available,
             "cheque_used": cheque_used,
+            "rotativo_rate": rotativo_rate,
+            "cheque_rate": cheque_rate,
+            "interest_rate": interest_rate,
             "updated_at": now.isoformat(),
         }
 

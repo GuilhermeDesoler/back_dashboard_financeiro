@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 
 from src.application.middleware.auth_bypass import require_auth, require_feature, require_role, require_super_admin
-from src.application.use_cases import CreateAccount, ListAccounts, DeleteAccount
+from src.application.use_cases import CreateAccount, ListAccounts, UpdateAccount, DeleteAccount
 from src.infra.repositories.mongo_account_repository import MongoAccountRepository
 from src.database import get_tenant_db
 
@@ -59,6 +59,38 @@ def list_accounts():
 
         return jsonify([account.to_dict() for account in accounts]), 200
 
+    except Exception as e:
+        return jsonify({"error": "Erro interno do servidor"}), 500
+
+
+@account_bp.route("/accounts/<account_id>", methods=["PATCH"])
+@require_auth
+@require_feature("accounts.update")
+def update_account(account_id: str):
+    try:
+        data = request.get_json()
+
+        paid = data.get("paid")
+        value = data.get("value")
+        date_str = data.get("date")
+        description = data.get("description")
+
+        date = datetime.fromisoformat(date_str) if date_str else None
+
+        repo = get_repository(g.company_id)
+        use_case = UpdateAccount(repo)
+        account = use_case.execute(
+            account_id=account_id,
+            paid=paid,
+            value=value,
+            date=date,
+            description=description
+        )
+
+        return jsonify(account.to_dict()), 200
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
     except Exception as e:
         return jsonify({"error": "Erro interno do servidor"}), 500
 

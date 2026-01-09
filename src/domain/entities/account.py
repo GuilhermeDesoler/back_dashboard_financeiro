@@ -12,6 +12,7 @@ class Account:
     date: datetime
     description: str
     type: Literal["boleto", "payment", "investment"]
+    paid: bool = False
     id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -35,6 +36,7 @@ class Account:
             "date": self.date.isoformat() if self.date else None,
             "description": self.description,
             "type": self.type,
+            "paid": self.paid,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -48,6 +50,7 @@ class Account:
             date=cls._parse_datetime(data.get("date")),
             description=data.get("description"),
             type=data.get("type"),
+            paid=data.get("paid", False),
             created_at=cls._parse_datetime(data.get("created_at")),
             updated_at=cls._parse_datetime(data.get("updated_at")),
         )

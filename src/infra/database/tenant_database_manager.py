@@ -44,12 +44,13 @@ class TenantDatabaseManager:
             self._shared_db = self._client[db_name]
         return self._shared_db
 
-    def get_tenant_db(self, company_id: str) -> Database:
+    def get_tenant_db(self, company_id: str = None, db_name: str = None) -> Database:
         """
         Retorna o banco de dados específico de uma empresa
 
         Args:
-            company_id: ID da empresa
+            company_id: ID da empresa (para cache)
+            db_name: Nome do database MongoDB
 
         Returns:
             Database específico da empresa
@@ -60,18 +61,33 @@ class TenantDatabaseManager:
         - platform_settings: Configurações da plataforma
         - roles: Roles específicas da empresa
         """
-        if not company_id:
-            raise ValueError("company_id é obrigatório")
+        if not db_name and not company_id:
+            raise ValueError("company_id ou db_name é obrigatório")
 
-        if company_id not in self._tenant_dbs:
-            # MongoDB tem limite de 38 bytes para nome de database
-            # Usamos hash curto do company_id para garantir unicidade
-            import hashlib
-            short_hash = hashlib.md5(company_id.encode()).hexdigest()[:8]
-            db_name = f"cmp_{short_hash}_db"
-            self._tenant_dbs[company_id] = self._client[db_name]
+        # Se não foi fornecido db_name, tenta buscar da empresa
+        if not db_name and company_id:
+            if company_id not in self._tenant_dbs:
+                # Busca db_name da empresa no shared_db
+                shared_db = self.get_shared_db()
+                company_doc = shared_db['companies'].find_one({'id': company_id})
 
-        return self._tenant_dbs[company_id]
+                if company_doc and company_doc.get('db_name'):
+                    db_name = company_doc['db_name']
+                else:
+                    # Fallback para hash (compatibilidade com código antigo)
+                    import hashlib
+                    short_hash = hashlib.md5(company_id.encode()).hexdigest()[:8]
+                    db_name = f"cmp_{short_hash}_db"
+
+                self._tenant_dbs[company_id] = self._client[db_name]
+            return self._tenant_dbs[company_id]
+
+        # Se db_name foi fornecido, usa direto (novo comportamento)
+        cache_key = db_name
+        if cache_key not in self._tenant_dbs:
+            self._tenant_dbs[cache_key] = self._client[db_name]
+
+        return self._tenant_dbs[cache_key]
 
     def create_tenant_db(self, company_id: str) -> Database:
         """

@@ -1,0 +1,23 @@
+,,,,,,,,,,,,
+,Banco,valor disponíível,valor em uso,modalidade,vencimento/prazo,taxa juros,CDI,IOF,IOF diário,CET mes,CET Ano,ideal para
+,Sicredi,"R$ 80.000,00","R$ 70.000,00",rotativo,20/11,"1,94%","1,16%","0,38%","0,0082%","3,49%","55,90%",Giro / Fluxo de Cx
+,Sicredi,"R$ 5.000,00","R$ 0,00",cheque especial,,"7,99%",-,"0,38%","0,0082%","8,77%","165,91%",Não utilizar
+,Sicoob,"R$ 30.000,00","R$ 0,00",cheque especial,,"3,50%",-,"0,38%","0,0082%","4,15%","63,30%",Evitar
+,,,"R$ 0,00",,,,,,,,,
+,,,,,,,,,,,,
+,Total,"R$ 115.000,00","R$ 75.000,00",,,,,,,,,
+,Provisão Juros,,"R$ 2.616,15",,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,Saldos,,,,,,,,,,,
+,Em espécie,"R$ 4.645,00",,,,sicredi ,Sicoob,link sicredi,,,,
+,Conta corrente,"R$ 69,73",,,pix,0,0,0,,,,
+,Sicredi,"R$ 69,73",,,débito,"0,9","0,9","0,9",,,,
+,Sicoob,"R$ 0,00",,,crédito à vista,"1,1","1,1","1,3",,,,
+,,,,,crédito 2 a 6,"1,4","1,4","1,6",,,,
+,,,,,crédito 7 a 12,"1,6","1,6","1,8",,,,
+,Antecipação Líquida,"R$ 0,00",,,antecipação,"1,7","1,59","1,79",,,,
+,Sicredi,,,,máquinas,2,1,- ,,,,
+,Sicoob,,,,aluguel,"R$ 0,00","R$ 56,90",- , ,,,
+,,,,,,,,,,,,
+,,,,,usar sicredi na maquina e no link,,,,,,,

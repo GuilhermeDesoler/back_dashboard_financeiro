@@ -45,6 +45,20 @@ class MongoAccountRepository(AccountRepository):
         }).sort("date", -1)
         return [self._doc_to_entity(doc) for doc in docs]
 
+    def update(self, account: Account) -> Account:
+        account.updated_at = datetime.now()
+
+        account_dict = account.to_dict()
+        account_dict["_id"] = account.id
+        account_dict.pop("id")
+
+        self._collection.update_one(
+            {"_id": account.id},
+            {"$set": account_dict}
+        )
+
+        return account
+
     def delete(self, account_id: str) -> bool:
         result = self._collection.delete_one({"_id": account_id})
         return result.deleted_count > 0
@@ -56,6 +70,7 @@ class MongoAccountRepository(AccountRepository):
             date=Account._parse_datetime(doc["date"]),
             description=doc["description"],
             type=doc["type"],
+            paid=doc.get("paid", False),
             created_at=Account._parse_datetime(doc.get("created_at")),
             updated_at=Account._parse_datetime(doc.get("updated_at"))
         )

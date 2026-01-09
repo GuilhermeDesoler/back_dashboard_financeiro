@@ -67,13 +67,14 @@ class MongoConnection:
         assert self._shared_db is not None
         return self._shared_db
 
-    def get_tenant_db(self, company_id: str, company_name: str = None) -> Database:
+    def get_tenant_db(self, company_id: str, company_name: str = None, db_name: str = None) -> Database:
         """
         Retorna o banco de dados específico de uma empresa
 
         Args:
             company_id: ID da empresa
             company_name: Nome da empresa (opcional, usado para criar db_name mais legível)
+            db_name: Nome do database (se já conhecido)
 
         Returns:
             Database específico da empresa
@@ -82,19 +83,24 @@ class MongoConnection:
             raise ValueError("company_id é obrigatório")
 
         if company_id not in self._tenant_dbs:
-            if company_name:
-                # Sanitiza o nome da empresa para usar como nome do database
-                # Remove caracteres especiais e espaços, converte para minúsculas
-                import re
-                safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', company_name.lower())
-                safe_name = re.sub(r'_+', '_', safe_name)  # Remove underscores duplicados
-                safe_name = safe_name.strip('_')  # Remove underscores das pontas
-                db_name = f"company_{safe_name}"
-            else:
-                # Fallback: usa hash curto do company_id
-                import hashlib
-                short_id = hashlib.md5(company_id.encode()).hexdigest()[:8]
-                db_name = f"cmp_{short_id}_db"
+            # Se db_name não foi fornecido, tenta buscar da empresa no shared_db
+            if not db_name:
+                company_doc = self.shared_db['companies'].find_one({'id': company_id})
+                if company_doc and company_doc.get('db_name'):
+                    db_name = company_doc['db_name']
+                elif company_name:
+                    # Sanitiza o nome da empresa para usar como nome do database
+                    # Remove caracteres especiais e espaços, converte para minúsculas
+                    import re
+                    safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', company_name.lower())
+                    safe_name = re.sub(r'_+', '_', safe_name)  # Remove underscores duplicados
+                    safe_name = safe_name.strip('_')  # Remove underscores das pontas
+                    db_name = f"company_{safe_name}"
+                else:
+                    # Fallback: usa hash curto do company_id
+                    import hashlib
+                    short_id = hashlib.md5(company_id.encode()).hexdigest()[:8]
+                    db_name = f"cmp_{short_id}_db"
 
             self._tenant_dbs[company_id] = self._client[db_name]
 

@@ -56,7 +56,8 @@ class CreateFinancialEntry:
             modality_id=modality_id,
             modality_name=modality.name,
             modality_color=modality.color,
-            type=entry_type
+            type=entry_type,
+            is_credit_plan=modality.is_credit_plan  # Copia o valor da modalidade
         )
 
         created_entry = self._entry_repository.create(entry)

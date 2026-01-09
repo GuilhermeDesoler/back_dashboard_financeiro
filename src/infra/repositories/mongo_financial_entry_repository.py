@@ -139,6 +139,8 @@ class MongoFinancialEntryRepository(FinancialEntryRepository):
             modality_name=doc["modality_name"],
             modality_color=doc.get("modality_color", "#000000"),
             type=doc.get("type", "received"),
+            entry_type=doc.get("entry_type", "normal"),
+            is_credit_plan=doc.get("is_credit_plan", False),
             created_at=FinancialEntry._parse_datetime(doc.get("created_at")),
             updated_at=FinancialEntry._parse_datetime(doc.get("updated_at"))
         )

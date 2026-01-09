@@ -24,5 +24,9 @@ class AccountRepository(ABC):
         pass
 
     @abstractmethod
+    def update(self, account: Account) -> Account:
+        pass
+
+    @abstractmethod
     def delete(self, account_id: str) -> bool:
         pass

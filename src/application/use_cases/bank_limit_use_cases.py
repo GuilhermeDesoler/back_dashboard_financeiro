@@ -17,6 +17,9 @@ class CreateBankLimit:
         rotativo_used: float = 0.0,
         cheque_available: float = 0.0,
         cheque_used: float = 0.0,
+        rotativo_rate: float = 0.0,
+        cheque_rate: float = 0.0,
+        interest_rate: float = 0.0,
     ) -> BankLimit:
         if not bank_name or not bank_name.strip():
             raise ValueError("Bank name is required")
@@ -27,6 +30,9 @@ class CreateBankLimit:
             rotativo_used=rotativo_used,
             cheque_available=cheque_available,
             cheque_used=cheque_used,
+            rotativo_rate=rotativo_rate,
+            cheque_rate=cheque_rate,
+            interest_rate=interest_rate,
         )
 
 
@@ -50,6 +56,9 @@ class UpdateBankLimit:
         rotativo_used: float = 0.0,
         cheque_available: float = 0.0,
         cheque_used: float = 0.0,
+        rotativo_rate: float = 0.0,
+        cheque_rate: float = 0.0,
+        interest_rate: float = 0.0,
     ) -> BankLimit:
         if not bank_name or not bank_name.strip():
             raise ValueError("Bank name is required")
@@ -61,6 +70,9 @@ class UpdateBankLimit:
             rotativo_used=rotativo_used,
             cheque_available=cheque_available,
             cheque_used=cheque_used,
+            rotativo_rate=rotativo_rate,
+            cheque_rate=cheque_rate,
+            interest_rate=interest_rate,
         )
 
 

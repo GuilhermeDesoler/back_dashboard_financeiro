@@ -11,6 +11,8 @@ class FinancialEntry:
     modality_name: str
     modality_color: str
     type: str = "received"  # "received" ou "receivable" (a haver)
+    entry_type: str = "normal"  # "normal", "despesa", "emprestimo"
+    is_credit_plan: bool = False  # Se é crediário (copiado da modalidade)
     id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -26,6 +28,8 @@ class FinancialEntry:
             "modality_name": self.modality_name,
             "modality_color": self.modality_color,
             "type": self.type,
+            "entry_type": self.entry_type,
+            "is_credit_plan": self.is_credit_plan,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -45,6 +49,8 @@ class FinancialEntry:
             modality_name=data["modality_name"],
             modality_color=data.get("modality_color", "#000000"),
             type=data.get("type", "received"),
+            entry_type=data.get("entry_type", "normal"),
+            is_credit_plan=data.get("is_credit_plan", False),
             created_at=FinancialEntry._parse_datetime(data.get("created_at")),
             updated_at=FinancialEntry._parse_datetime(data.get("updated_at")),
         )

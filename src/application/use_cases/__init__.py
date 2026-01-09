@@ -19,6 +19,7 @@ from .toggle_platform_anticipation import TogglePlatformAnticipation
 
 from .create_account import CreateAccount
 from .list_accounts import ListAccounts
+from .update_account import UpdateAccount
 from .delete_account import DeleteAccount
 
 from .bank_limit_use_cases import (
@@ -49,6 +50,7 @@ __all__ = [
     "TogglePlatformAnticipation",
     "CreateAccount",
     "ListAccounts",
+    "UpdateAccount",
     "DeleteAccount",
     "CreateBankLimit",
     "ListBankLimits",

@@ -32,11 +32,15 @@ def create_bank_limit():
         rotativo_used = float(data.get("rotativo_used", 0))
         cheque_available = float(data.get("cheque_available", 0))
         cheque_used = float(data.get("cheque_used", 0))
+        rotativo_rate = float(data.get("rotativo_rate", 0))
+        cheque_rate = float(data.get("cheque_rate", 0))
+        interest_rate = float(data.get("interest_rate", 0))
 
         repo = get_repository(g.company_id)
         use_case = CreateBankLimit(repo)
         bank_limit = use_case.execute(
-            bank_name, rotativo_available, rotativo_used, cheque_available, cheque_used
+            bank_name, rotativo_available, rotativo_used, cheque_available, cheque_used,
+            rotativo_rate, cheque_rate, interest_rate
         )
 
         return jsonify(bank_limit.to_dict()), 201
@@ -73,11 +77,15 @@ def update_bank_limit(limit_id: str):
         rotativo_used = float(data.get("rotativo_used", 0))
         cheque_available = float(data.get("cheque_available", 0))
         cheque_used = float(data.get("cheque_used", 0))
+        rotativo_rate = float(data.get("rotativo_rate", 0))
+        cheque_rate = float(data.get("cheque_rate", 0))
+        interest_rate = float(data.get("interest_rate", 0))
 
         repo = get_repository(g.company_id)
         use_case = UpdateBankLimit(repo)
         bank_limit = use_case.execute(
-            limit_id, bank_name, rotativo_available, rotativo_used, cheque_available, cheque_used
+            limit_id, bank_name, rotativo_available, rotativo_used, cheque_available, cheque_used,
+            rotativo_rate, cheque_rate, interest_rate
         )
 
         return jsonify(bank_limit.to_dict()), 200

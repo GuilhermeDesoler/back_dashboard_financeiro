@@ -17,6 +17,7 @@ class BankLimitRepository(ABC):
         rotativo_used: float = 0.0,
         cheque_available: float = 0.0,
         cheque_used: float = 0.0,
+        interest_rate: float = 0.0,
     ) -> BankLimit:
         """Create a new bank limit"""
         pass
@@ -40,6 +41,7 @@ class BankLimitRepository(ABC):
         rotativo_used: float = 0.0,
         cheque_available: float = 0.0,
         cheque_used: float = 0.0,
+        interest_rate: float = 0.0,
     ) -> BankLimit:
         """Update a bank limit"""
         pass
