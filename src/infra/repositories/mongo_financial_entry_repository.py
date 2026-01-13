@@ -31,7 +31,8 @@ class MongoFinancialEntryRepository(FinancialEntryRepository):
         return None
 
     def find_all(self) -> List[FinancialEntry]:
-        docs = self._collection.find().sort("date", -1)
+        # Ordena por created_at descendente (mais recente primeiro)
+        docs = self._collection.find().sort("created_at", -1)
         return [self._doc_to_entity(doc) for doc in docs]
 
     def find_by_date(self, date: datetime) -> List[FinancialEntry]:
@@ -44,7 +45,7 @@ class MongoFinancialEntryRepository(FinancialEntryRepository):
                 "$gte": start_of_day.isoformat(),
                 "$lte": end_of_day.isoformat()
             }
-        }).sort("date", -1)
+        }).sort("created_at", -1)
         return [self._doc_to_entity(doc) for doc in docs]
 
     def update(self, entry_id: str, entry: FinancialEntry) -> Optional[FinancialEntry]:
@@ -69,7 +70,7 @@ class MongoFinancialEntryRepository(FinancialEntryRepository):
         return result.deleted_count > 0
 
     def find_by_modality(self, modality_id: str) -> List[FinancialEntry]:
-        docs = self._collection.find({"modality_id": modality_id}).sort("date", -1)
+        docs = self._collection.find({"modality_id": modality_id}).sort("created_at", -1)
         return [self._doc_to_entity(doc) for doc in docs]
 
     def find_by_date_range(
@@ -80,7 +81,7 @@ class MongoFinancialEntryRepository(FinancialEntryRepository):
                 "$gte": start_date.isoformat(),
                 "$lte": end_date.isoformat()
             }
-        }).sort("date", -1)
+        }).sort("created_at", -1)
         return [self._doc_to_entity(doc) for doc in docs]
 
     def get_total_by_date(self, date: datetime) -> float:
@@ -141,6 +142,7 @@ class MongoFinancialEntryRepository(FinancialEntryRepository):
             type=doc.get("type", "received"),
             entry_type=doc.get("entry_type", "normal"),
             is_credit_plan=doc.get("is_credit_plan", False),
+            credit_payment=doc.get("credit_payment", False),
             created_at=FinancialEntry._parse_datetime(doc.get("created_at")),
             updated_at=FinancialEntry._parse_datetime(doc.get("updated_at"))
         )

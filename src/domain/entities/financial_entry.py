@@ -13,6 +13,7 @@ class FinancialEntry:
     type: str = "received"  # "received" ou "receivable" (a haver)
     entry_type: str = "normal"  # "normal", "despesa", "emprestimo"
     is_credit_plan: bool = False  # Se é crediário (copiado da modalidade)
+    credit_payment: bool = False  # Se é um pagamento de crediário recebido
     id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -30,6 +31,7 @@ class FinancialEntry:
             "type": self.type,
             "entry_type": self.entry_type,
             "is_credit_plan": self.is_credit_plan,
+            "credit_payment": self.credit_payment,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -51,6 +53,7 @@ class FinancialEntry:
             type=data.get("type", "received"),
             entry_type=data.get("entry_type", "normal"),
             is_credit_plan=data.get("is_credit_plan", False),
+            credit_payment=data.get("credit_payment", False),
             created_at=FinancialEntry._parse_datetime(data.get("created_at")),
             updated_at=FinancialEntry._parse_datetime(data.get("updated_at")),
         )
