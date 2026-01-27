@@ -20,7 +20,9 @@ class MongoPlatformSettingsRepository(PlatformSettingsRepository):
         # Se não existir, criar com valores padrão
         default_settings = PlatformSettings(
             id=self.SETTINGS_ID,
-            is_anticipation_enabled=False,
+            markup_default=0.0,
+            markup_cost=0.0,
+            markup_percentage=0.0,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
@@ -48,15 +50,26 @@ class MongoPlatformSettingsRepository(PlatformSettingsRepository):
         settings.id = self.SETTINGS_ID
         return settings
 
-    def toggle_anticipation(self) -> PlatformSettings:
+    def update_markup_settings(
+        self,
+        markup_default: Optional[float] = None,
+        markup_cost: Optional[float] = None,
+        markup_percentage: Optional[float] = None
+    ) -> PlatformSettings:
         current_settings = self.get_settings()
-        current_settings.toggle_anticipation()
+        current_settings.update_markup_settings(
+            markup_default=markup_default,
+            markup_cost=markup_cost,
+            markup_percentage=markup_percentage
+        )
         return self.update_settings(current_settings)
 
     def _doc_to_entity(self, doc: dict) -> PlatformSettings:
         return PlatformSettings(
             id=doc["_id"],
-            is_anticipation_enabled=doc.get("is_anticipation_enabled", False),
+            markup_default=doc.get("markup_default", 0.0),
+            markup_cost=doc.get("markup_cost", 0.0),
+            markup_percentage=doc.get("markup_percentage", 0.0),
             created_at=PlatformSettings._parse_datetime(doc.get("created_at")),
             updated_at=PlatformSettings._parse_datetime(doc.get("updated_at"))
         )
