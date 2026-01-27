@@ -7,7 +7,8 @@ from src.presentation.routes import (
     platform_settings_bp,
     installment_bp,
     account_bp,
-    bank_limit_bp
+    bank_limit_bp,
+    migration_bp
 )
 from src.presentation.routes.auth_routes import auth_bp
 from src.presentation.routes.admin_routes import admin_bp
@@ -37,6 +38,7 @@ def create_app():
     app.register_blueprint(installment_bp, url_prefix="/api")
     app.register_blueprint(account_bp, url_prefix="/api")
     app.register_blueprint(bank_limit_bp, url_prefix="/api")
+    app.register_blueprint(migration_bp, url_prefix="/api")
 
     @app.route("/", methods=["GET"])
     def home():

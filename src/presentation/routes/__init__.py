@@ -5,6 +5,7 @@ from .platform_settings_routes import platform_settings_bp
 from .installment_routes import installment_bp
 from .account_routes import account_bp
 from .bank_limit_routes import bank_limit_bp
+from .migration_routes import migration_bp
 
 __all__ = [
     "payment_modality_bp",
@@ -13,5 +14,6 @@ __all__ = [
     "platform_settings_bp",
     "installment_bp",
     "account_bp",
-    "bank_limit_bp"
+    "bank_limit_bp",
+    "migration_bp"
 ]
