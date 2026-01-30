@@ -7,7 +7,7 @@ from src.infra.repositories import (
     MongoFeatureRepository
 )
 from src.infra.security import JWTHandler
-from src.application.use_cases.auth import Login, RefreshToken
+from src.application.use_cases.auth import Login, RefreshToken, ChangePassword
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -122,3 +122,50 @@ def me():
         }), 200
 
     return get_user_info()
+
+
+@auth_bp.route("/auth/change-password", methods=["POST"])
+def change_password():
+    """
+    Altera a senha do usuário autenticado
+
+    Headers:
+        Authorization: Bearer <token>
+
+    Body:
+        {
+            "current_password": "senha_atual",
+            "new_password": "nova_senha"
+        }
+
+    Returns:
+        200: Senha alterada com sucesso
+        400: Dados inválidos
+        401: Senha atual incorreta
+    """
+    from src.application.middleware import require_auth
+    from flask import g
+
+    @require_auth
+    def change_user_password():
+        try:
+            data = request.get_json()
+
+            current_password = data.get("current_password")
+            new_password = data.get("new_password")
+
+            if not current_password or not new_password:
+                return jsonify({"error": "Senha atual e nova senha são obrigatórias"}), 400
+
+            user_repo, _, _, _ = get_auth_repositories()
+            use_case = ChangePassword(user_repo)
+            use_case.execute(g.user_id, current_password, new_password)
+
+            return jsonify({"message": "Senha alterada com sucesso"}), 200
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": "Erro interno do servidor"}), 500
+
+    return change_user_password()
